@@ -1,4 +1,4 @@
-# Preventative Nutrition
+# Nutrition For All: Our Solution for De-risking Disease in the Hispanic Community
 A culturally humble and affordable digital platform to empower at-risk families, particularly ethnic minority and low-income families, to improve nutrition.
 
 # What's the problem?
