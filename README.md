@@ -20,4 +20,29 @@ This project outlines the development of a digital platform to empower low-incom
 
 The platform would take user-entered data to assess health risk based on diet. Over time, it would provide assessments of increased or decreased risk based on their food choices as measured by our machine learning models. We propose using a human-centric approach to generate a positive user experience. To this end, we propose testing various models for logging food easily. For example, we propose exploring the development of a photo upload feature where users take pictures of their food and the application would provide real time feedback and assessment on health risk through machine learning. The application would then collect risk assessment data which would be available for NIH researchers and scientists through cloud computing. We also propose incorporating geospatial datasets such as SafeGraph. This application will feature recommendations where to shop and get ingredients and even feature price comparisons.
 
+# What tools did we use?
+
+Python
+Jupyter Notebook
+AWS
+Google Sites
+
+# What datasets did we use?
+
+openweathermap
+open data DC grocery store locations
+
+# What datasets would we like to use?
+
+USDA Grocery Stores Dataset
+Food Data Central 
+
+# Team members
+Isabel Otero (co-lead, nutritionist)
+Tom Coyle (co-lead, system administrator)
+Carol Gu (writer, programmer)
+Ricardo Sandoval (computer scientist, programming mentor)
+Rhonda Moore (NIH, dataset researcher)
+Timothy Chirava (clinician, dataset researcher)
+Rohan Narain (NIH, dataset researcher)
 
