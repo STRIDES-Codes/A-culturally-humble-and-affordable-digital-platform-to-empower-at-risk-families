@@ -41,13 +41,18 @@ Carol Gu (writer, programmer)
 
 Rhonda Moore (NIH, dataset researcher)
 
-Ricardo Sandoval (computer scientist, programming mentor)
-
-Duncan McElfresh (health applications expert, mentor)
-
 Timothy Chirava (clinician, dataset researcher)
 
 Rohan Narain (NIH, dataset researcher)
+
+# Acknowledgements
+Allissa Dillman (NIH, codeathon organizer)
+
+Ricardo Sandoval (computer scientist, programming mentor)
+
+Edwin Lock (computer scientist, programming mentor)
+
+Duncan McElfresh (health applications expert, mentor)
 
 Lynn Kirabo (human computer interaction, mentor)
 
