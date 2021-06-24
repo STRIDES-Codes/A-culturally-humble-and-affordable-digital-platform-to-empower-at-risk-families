@@ -39,11 +39,15 @@ Tom Coyle (co-lead, system administrator)
 
 Carol Gu (writer, programmer)
 
+Rhonda Moore (NIH, dataset researcher)
+
 Ricardo Sandoval (computer scientist, programming mentor)
 
-Rhonda Moore (NIH, dataset researcher)
+Duncan McElfresh (health applications expert, mentor)
 
 Timothy Chirava (clinician, dataset researcher)
 
 Rohan Narain (NIH, dataset researcher)
+
+Lynn Kirabo (human computer interaction, mentor)
 
