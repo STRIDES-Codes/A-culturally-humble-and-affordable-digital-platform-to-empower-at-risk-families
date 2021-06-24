@@ -22,27 +22,28 @@ The platform would take user-entered data to assess health risk based on diet. O
 
 # What tools did we use?
 
-Python
-Jupyter Notebook
-AWS
-Google Sites
+Python, Jupyter Notebook, AWS, Google Sites
 
 # What datasets did we use?
 
-openweathermap
-open data DC grocery store locations
+openweathermap, open data DC grocery store locations
 
 # What datasets would we like to use?
 
-USDA Grocery Stores Dataset
-Food Data Central 
+USDA Grocery Stores Dataset, Food Data Central 
 
 # Team members
 Isabel Otero (co-lead, nutritionist)
+
 Tom Coyle (co-lead, system administrator)
+
 Carol Gu (writer, programmer)
+
 Ricardo Sandoval (computer scientist, programming mentor)
+
 Rhonda Moore (NIH, dataset researcher)
+
 Timothy Chirava (clinician, dataset researcher)
+
 Rohan Narain (NIH, dataset researcher)
 
