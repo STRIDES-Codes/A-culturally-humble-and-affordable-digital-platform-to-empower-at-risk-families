@@ -30,7 +30,7 @@ openweathermap, open data DC grocery store locations
 
 # What datasets would we like to use?
 
-USDA Grocery Stores Dataset, Food Data Central 
+USDA Grocery Stores Dataset, Food Data Central, Kroger API Dataset 
 
 # Team members
 Isabel Otero (co-lead, nutritionist)
