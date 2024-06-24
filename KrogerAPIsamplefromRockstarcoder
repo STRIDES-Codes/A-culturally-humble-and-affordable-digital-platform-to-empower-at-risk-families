@@ -1,0 +1,356 @@
+pip install robotexclusionrulesparser
+Requirement already satisfied: robotexclusionrulesparser in c:\users\owner\anaconda3\lib\site-packages (1.7.1)
+Note: you may need to restart the kernel to use updated packages.
+In [1]:
+# import necessary packages
+import requests
+import string
+import random
+import json  
+import pandas as pd
+import numpy as np
+from pandas import json_normalize
+from pprint import pprint
+import time
+from bs4 import BeautifulSoup
+import urllib
+import robotexclusionrulesparser
+import re
+import urllib.request
+import datetime
+
+rp = robotexclusionrulesparser.RobotFileParserLookalike()
+Recipe Web Scaping
+In [2]:
+# Functions for finding allowable paths and retrieving links
+# Taken from class excercises
+
+def allowable_paths(URL = "https://www.allrecipes.com/"):
+    base_url = re.findall("^.*\.[a-z]+\/", URL)[0]
+    robots_URL = base_url + "robots.txt"
+
+    # Make the request
+    req = urllib.request.Request(url = robots_URL)
+    # Open the URL
+    handler = urllib.request.urlopen(req)
+    # Read/view the data as a string
+    robots = handler.read().decode('utf-8')
+    robots_list = re.split("User-[Aa]gent: (\S+)", robots)
+    any_robots = robots_list[robots_list.index("*") + 1]
+
+    paths = [base_url + x[8:] for x in re.findall("Allow: [^\n]+", any_robots)]
+
+    return(paths, robots)
+
+
+def allowed_links(URL):
+    ## get/parse the robots file
+    base_url = re.findall("^.*\.[a-z]+\/", URL)[0]
+    paths, robots = allowable_paths(URL)
+    rp.parse(robots)
+
+    ## gather the current site's data
+    html_text = urllib.request.urlopen(URL).read()
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    ## collect the access information
+    data = {}
+    for target in soup.find('body').find_all({"a": "href"}):
+        if target.get('href', False):
+            link = target['href']
+            if link[0] == "/":
+                link = base_url + link[1:]
+                data[link] = rp.can_fetch("*", link)
+            elif link.startswith(base_url):
+                data[link] = rp.can_fetch("*", link)
+    
+    return(data)
+In [3]:
+# Function to find a link to a new recipe in html code
+# retrieves a url to a recipe that has not already been grabbed
+# or if no url is available with a /recipe/ in the url, grabs the first available /recipes/ url 
+
+def find_recipe(url, recipe_numbers):
+    new_url = ''
+    links = allowed_links(url)
+    link_keys = links.keys()
+    
+    for link in link_keys: 
+        split_link = link.split('/')
+        if (split_link[3] == 'recipe'):
+            if int(split_link[4]) not in recipe_numbers:   
+                recipe_numbers.append(int(split_link[4]))
+                new_url = link
+                break
+
+    if new_url == '': 
+
+        for link in link_keys: 
+            split_link = link.split('/')
+            if (split_link[3] == 'recipes'):
+                new_url = link                       
+                break
+
+    return new_url, recipe_numbers
+In [4]:
+# Funtion to call the find_recipe function as many times as needed to get a needed URL to a recipe that 
+# has not been extracted from allrecipes.com yet
+
+def get_link(url, recipe_numbers):
+    [new_url, recipe_numbers] = find_recipe(url, recipe_numbers)
+    split_url = new_url.split('/')
+
+    while split_url[3] != 'recipe': 
+        [new_url, recipe_numbers] = find_recipe(new_url, recipe_numbers)
+        split_url = new_url.split('/')
+
+    return new_url, recipe_numbers
+In [5]:
+# Function to return a dictionary that contains the title of the recipe and the ingredients
+# The ingredients returned have been stripped of measurement or extraneous descriptive words and numbers
+
+def get_ingredients(url):
+    html_text = urllib.request.urlopen(url).read()
+    soup = BeautifulSoup(html_text, 'html.parser')
+    
+    split_link = url.split('/')
+    recipe_num = split_link[4]
+
+    removal_words = ['cup', 'ounce', 'teaspoon', 'tablespoon', 'cups', 'teaspoons', 'tablespoons', 'ounces', 'shredded', 'to', 'taste', 'slice', 'slices']
+    food_dict = {}
+
+    script = soup.find_all('span', {'class':'ingredients-item-name'})
+
+    title = soup.find('title')
+
+    title = title.text
+    split_title = title.split('|')
+    title = recipe_num + ' ' + split_title[0]
+
+    if script != []:
+        food = []
+        for ing in script:
+            ing = ing.text
+            ing = ing.strip()
+            
+            if ing.find(',') != -1: 
+                comma_ind = ing.index(',')
+                ing = ing[:comma_ind]
+
+            words = ing.split()
+            new_words = []
+            for i in words:
+                if  not i.isnumeric():
+                    if (i not in removal_words) & (i[0] != '(') & (i[-1] != ')'):
+                        new_words.append(i)
+            ingredient = ' '.join(new_words)
+            food.append(ingredient)
+    food_dict[title] = food
+
+    return food_dict
+Kroger API
+In [6]:
+# Function to request authentication URL
+
+def kroger_auth(client_id,redirect_uri):
+    auth_params = {'scope': 'product.compact',
+                   'response_type': 'code',
+                   'client_id': client_id,
+                   'redirect_uri': redirect_uri,
+                   }
+
+    html = requests.get("https://api.kroger.com/v1/connect/oauth2/authorize",
+                        params = auth_params)
+
+    # Print the link to the approval page
+    return print(html.url)
+In [7]:
+# Fuction to get access to Kroger API
+
+def kroger_access(auth_code):
+    token_url = 'https://api.kroger.com/v1/connect/oauth2/token'
+
+    qd = {'grant_type': 'authorization_code',
+          'code': auth_code,
+          'redirect_uri': redirect_uri,
+          'client_id': client_id,
+          'client_secret': client_secret}
+
+    response = requests.post(token_url, data=qd, timeout=60)
+    response = response.json()
+
+    if 'error' in response.keys():
+        return print("Access Unsuccessfully Granted! Please try again!")
+    else:
+        access_token = response['access_token']
+        refresh_token = response['refresh_token']
+        return ["Access Successfully Granted!",access_token, refresh_token]
+In [8]:
+# Function to refresh token to get a new access token after the access token in use expires after 30'
+
+def kroger_refresh(refresh_token):
+    token_url = 'https://api.kroger.com/v1/connect/oauth2/token'
+
+    qd = {'grant_type': 'refresh_token',
+          'refresh_token': refresh_token,
+          'client_id': client_id,
+          'client_secret': client_secret}
+
+    response = requests.post(token_url, data=qd, timeout=60)
+    response = response.json()
+
+    if 'error' in response.keys():
+        return print("Access Unsuccessfully Granted! Please try again!")
+    else:
+        access_token = response['access_token']
+        refresh_token = response['refresh_token']
+        return ["Access Successfully Granted!",access_token, refresh_token]
+In [9]:
+# Function to pull data from Kroger API by product names/categories & location id with a selected limit 
+# on shown results and unpack the 'items' dictionary to get selling details on fulfillement types and prices.
+# result limit ranges between 1 and 50. category & locationid are both single string.
+
+def pull_product_data(category,resultlimit): 
+    global access_token, refresh_token
+    
+    # get raw data
+    url = 'https://api.kroger.com/v1/products?filter.term='+category+'&filter.locationId=01400441&filter.limit='+str(resultlimit)
+    headers = {"content-type": "application/json; charset=UTF-8",'Authorization':'Bearer {}'.format(access_token)}
+    try:
+        response = requests.get(url, headers=headers).json()
+
+        # refresh access token if it has expired 
+        if 'error' in response.keys():
+            refresh = kroger_refresh(refresh_token)
+            access_token = refresh[1]
+            refresh_token = refresh[2]
+            headers = {"content-type": "application/json; charset=UTF-8",'Authorization':'Bearer {}'.format(access_token)}
+            response = requests.get(url, headers=headers).json()
+    except:
+        response = {'data': []}
+        
+    df = json_normalize(response,record_path ='data')
+
+    # get selling details
+    items = pd.DataFrame()
+    for i in range(0,df.shape[0]):
+        temp = df['items'][i][0]
+        for info in temp.keys():
+            items.loc[i,'description'] = df.loc[i,'description']
+            if type(temp[info]) == dict:
+                for subinfo in temp[info].keys():
+                    text = str(info+'_'+subinfo)
+                    items.loc[i,text] = temp[info][subinfo]
+            else:
+                items.loc[i,info] = temp[info]
+
+    return items, access_token, refresh_token
+In [10]:
+# Function to get suggestions to purchase from Kroger for one recipe
+# Final output is in dictionary format
+
+def get_suggestions(recipe,resultlimit,api_counter):
+    # list of needed information
+    upc_list_info = ['description','price_regular','size','soldBy']
+    
+    # create necessary dictionaries 
+    suggestions_dict = {}
+    recipe_dict = {}
+    
+    # get the name of recipe
+    recipe_title = list(recipe.keys())[0]
+    ingredient_list = recipe[recipe_title]
+    
+    # pull kroger data for suggestions
+    for each in ingredient_list:
+        api_counter += 1
+        ingredient_dict = {}
+        [df_temp, access_token, refresh_token] = pull_product_data(each,resultlimit)
+        for i in range(0,df_temp.shape[0]):
+            upc_dict = {}
+            for info in upc_list_info:
+                upc = df_temp.loc[i,'itemId']
+                try:
+                    upc_dict[info] = df_temp.loc[i,info]
+                except:
+                    upc_dict[info] = np.nan
+            ingredient_dict[upc] = upc_dict  
+        
+        recipe_dict[each] = ingredient_dict
+    suggestions_dict[recipe_title] = recipe_dict       
+    
+    return suggestions_dict, api_counter, access_token, refresh_token
+Integration
+In [11]:
+# Function to integrate all the code from retrieving recipes and return a dictionary result
+# The returned dictionary includes lots of recipes and relevant suggestions for purchase
+
+def integration(elapsed_time, result_limit): # elapsed_time to run script for a finite amount of time.
+    wait_time = 1  # crawl delay from Robots.txt
+    counter = 0
+    #max_counter = 4
+    api_counter = 0 # The Kroger API has a 10,000 call per day limit
+
+    start_time = time.perf_counter()
+    
+    url  = 'https://www.allrecipes.com/recipes/'  # URL to start the crawling
+    recipe_numbers = [] # list to keep track of the recipes numbers that are pulled
+    
+    # dictionary to include all recipes with suggestions
+    final_output = {}
+    
+    while True:
+        counter += 1
+
+        [url, recipe_numbers] = get_link(url, recipe_numbers)
+        ingredients_dict = get_ingredients(url)
+        [sug_dict, api_counter, access_token, refresh_token] = get_suggestions(ingredients_dict,result_limit, api_counter)
+        
+        # to pull all recipes with suggestions into one dictionary
+        final_output[list(sug_dict.keys())[0]] = list(sug_dict.values())[0]
+
+        time.sleep(wait_time)  
+
+        if api_counter >= 10000:  # Sleep the program if max api calls have been made
+            today = datetime.datetime.today()
+            future = datetime.datetime(today.year,today.month,today.day)
+            future += datetime.timedelta(days=1)
+
+            start_again = False
+
+            while start_again == False:
+                time.sleep(3600) #sleep for an hour
+                today = datetime.datetime.today()
+
+                if today == future: 
+                    start_again = True
+
+        now = time.perf_counter()
+
+        if now - start_time >= elapsed_time: 
+            break
+            
+    return final_output
+In [12]:
+# Function to convert the final output into dataframe
+
+def suggestions_df(suggestions):
+    suggestions_df = pd.DataFrame()
+    index = 0
+    for recipe in suggestions.keys():
+        for ingredient in suggestions[recipe].keys():
+            if suggestions[recipe][ingredient] == {}:
+                suggestions_df.loc[index,'recipe'] = recipe
+                suggestions_df.loc[index,'ingredient'] = ingredient
+                suggestions_df.loc[index,'upc'] = np.nan
+                index +=1
+            else:
+                for upc in suggestions[recipe][ingredient].keys():
+                    for info in suggestions[recipe][ingredient][upc].keys():
+                        suggestions_df.loc[index,'recipe'] = recipe
+                        suggestions_df.loc[index,'ingredient'] = ingredient
+                        suggestions_df.loc[index,'upc'] = upc
+                        suggestions_df.loc[index,info] = suggestions[recipe][ingredient][upc][info]
+                    index += 1  
+                
+    return suggestions_df
